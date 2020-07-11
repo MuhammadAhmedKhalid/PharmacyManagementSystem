@@ -8,14 +8,13 @@ from abc import abstractmethod
 # password= 'master111'
 
 window = Tk()
+# FOR LOGIN SCREEN
 LOGINTEXT = StringVar()
 USERNAME = StringVar()
 PASSWORD = StringVar()
 
-
 class ActionHandler:
     login_count = 0
-
     @staticmethod
     def login_button_command():
         DataBaseHandler.create_user()
@@ -53,16 +52,27 @@ class ActionHandler:
     def show_medicine_button_command():
         View.show_medicine_window()
     @staticmethod
-    def save_company_button_command():
-        View.save_company_window()
+    def save_medicine_button_command():
+        medicine = Medicines()
+        # USING OVERLOADING FUNCTIONALITY HERE
+        if(MEDICINE_COMPANY.get() == "" or MEDICINE_NAME.get()=="" or MEDICINE_TYPE.get()==""):
+            status = medicine.add_medicine(amount=MEDICINE_AMOUNT.get(),price=MEDICINE_PRICE.get())
+        elif(MEDICINE_AMOUNT.get()==""):
+            status = medicine.add_medicine(company = MEDICINE_COMPANY.get(),type =MEDICINE_TYPE.get(),name=MEDICINE_NAME.get(),price=MEDICINE_PRICE.get())
+        elif(MEDICINE_PRICE.get()==""):
+            status = medicine.add_medicine(company = MEDICINE_COMPANY.get(),type =MEDICINE_TYPE.get(),name=MEDICINE_NAME.get(),amount=MEDICINE_AMOUNT.get())
+        else:
+            status = medicine.add_medicine(MEDICINE_COMPANY.get(),MEDICINE_NAME.get(),MEDICINE_TYPE.get(),MEDICINE_AMOUNT.get(),MEDICINE_PRICE.get())
+        if(status == True):
+            window_medicine.destroy()
+
 class DataBaseHandler:
     global con, cursor
     @staticmethod
     def create_user():
         con = sqlite3.connect("Pharmacy.db")
         cursor = con.cursor()
-        cursor.execute(
-            "CREATE TABLE IF NOT EXISTS 'USERS' (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, username TEXT, password TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS 'USERS' (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, username TEXT, password TEXT)")
         cursor.execute("SELECT * FROM 'USERS' ORDER BY 'id' DESC LIMIT 1")
         if cursor.fetchone() is None:
             cursor.execute("INSERT INTO 'USERS' ('username','password') VALUES('Muhammad','master111')")
@@ -77,6 +87,20 @@ class DataBaseHandler:
             return False
         else:
             return True
+    @staticmethod
+    def create_all_tables():
+        con=sqlite3.connect("Pharmacy.db")
+        cursor=con.cursor()
+        cursor.execute("CREATE TABLE IF NOT EXISTS 'MEDICINES'(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT,type TEXT,amount TEXT,price TEXT,company TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS 'PATIENTS'(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT,gender TEXT,age TEXT,phoneNum TEXT,doctorConsulted TEXT,cnic TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS 'DOCTORS'(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT,age TEXT,gender TEXT,phoneNum TEXT,CNIC TEXT,doctorType TEXT)")
+        con.commit()
+    @staticmethod
+    def insert_into_medicine(company,name,type,amount,price):
+        con=sqlite3.connect("Pharmacy.db")
+        cursor = con.cursor()
+        cursor.execute("INSERT INTO 'MEDICINES' ('company','name','type','amount','price') VALUES(?,?,?,?,?)",(company,name,type,amount,price))
+        con.commit()
 
 class Pharmacy:
     def __init__(self,doctors,medicines,patients):
@@ -86,7 +110,7 @@ class Pharmacy:
     def getDoctors(self):
         return self.__doctors
     def getMedicines(self):
-        return self.__medicines
+        return self.__medicines #CALL DATABASE HERE
     def getPatients(self):
         return self.__patients
     def setDoctor(self, doctor):
@@ -96,26 +120,20 @@ class Pharmacy:
     def setPatient(self,patient):
         self.__patients=patient
 
-class Company:
-    def __init__(self,name,description):
-        self.__name=name
-        self.__description=description
-    def getName(self):
-        return self.__name
-    def getDescription(self):
-        return self.__description
-    def setName(self,name):
-        self.__name=name
-    def setDescription(self,description):
-        self.__description=description
-
-class Medicicnes:
-    def __init__(self,company,name,type,amount,price):
-        self.__company=company
-        self.__name=name
-        self.__type=type
-        self.__amount=amount
-        self.__price=price
+class Medicines:
+    # WE ARE DOING METHOD OVERLOADING
+    def add_medicine(self,company=None,name=None,type=None,amount=None,price=None):
+        status = True
+        if (((company!=None) and (company!="")) & ((name!=None) and (name!="")) & ((type!=None) and (type!="")) & ((amount!=None) and (amount!="")) & ((price!=None) and (price!=""))):
+            DataBaseHandler.insert_into_medicine(company, name, type, amount, price)
+        elif ((company!=None and company!="") & (name!=None and name!="") & (type!=None and type!="") & (amount!=None and amount!="")):
+            DataBaseHandler.insert_into_medicine(company, name, type, amount,str(100))
+        elif((company!=None and company!="") & (name!=None and name!="") & (type!=None and type!="") & (price!=None and price!="")):
+            DataBaseHandler.insert_into_medicine(company, name, type,str(1),price)
+        else:
+            MANDATORY_MEDICINE_FIELD.set("Not making entry, Required fields are not provided")
+            status = False
+        return status
 
 class Patients:
     def __init__(self,name,gender,age,phoneNum,doctorConsulted,CNIC):
@@ -143,7 +161,6 @@ class Cardiologist(Doctor):
 class Surgeon(Doctor):
     def __init__(self, name, age, gender, phoneNum, CNIC):
         super().__init__(name, age, gender, phoneNum, CNIC)
-
 
 class View:
     @staticmethod
@@ -194,32 +211,45 @@ class View:
         setup.config(bg='Light Gray')
     @staticmethod
     def medicine_window():
-        window = Toplevel()
-        Label(window, text="Medicine Detail",font=("Basic Retro",35),bg='Light Gray').pack()
-        View.set_window(window)
-        Label(window,text="\nName",font=("Basic Retro", 16),bg='Light Gray').pack()
-        Entry(window,bd=3).pack()
-        Label(window, text="\nType",font=("Basic Retro", 16),bg='Light Gray').pack()
-        combo=Combobox(window)
-        combo['values']=('Choose..','Liquid','Tablet','Capsule','Drops','Injection', 'Text')
+        global window_medicine
+        window_medicine = Toplevel()
+        global MEDICINE_NAME
+        global MEDICINE_TYPE
+        global MEDICINE_AMOUNT
+        global MEDICINE_COMPANY
+        global MEDICINE_PRICE
+        global MANDATORY_MEDICINE_FIELD
+        # FOR MEDICINE SCREEN
+        MEDICINE_NAME = StringVar()
+        MEDICINE_TYPE = StringVar()
+        MEDICINE_AMOUNT = StringVar()
+        MEDICINE_PRICE = StringVar()
+        MEDICINE_COMPANY = StringVar()
+        MANDATORY_MEDICINE_FIELD = StringVar()
+        Label(window_medicine, text="Medicine Detail",font=("Basic Retro",35),bg='Light Gray').pack()
+        View.set_window(window_medicine)
+        Label(window_medicine,text="\nName",font=("Basic Retro", 16),bg='Light Gray').pack()
+        Entry(window_medicine,bd=3,textvariable=MEDICINE_NAME).pack()
+        Label(window_medicine, text="\nType",font=("Basic Retro", 16),bg='Light Gray').pack()
+        combo=Combobox(window_medicine,textvariable=MEDICINE_TYPE)
+        combo['values']=('Choose..','Liquid','Tablet','Capsule','Drops','Injection')
         combo.current(0)
         combo.pack()
-        Label(window, text="\nAmount",font=("Basic Retro", 16),bg='Light Gray').pack()
-        Entry(window, bd=3).pack()
-        Label(window, text="\nPrice",font=("Basic Retro", 16),bg='Light Gray').pack()
-        Entry(window, bd=3).pack()
-        Label(window, text="\nCompany",font=("Basic Retro", 16),bg='Light Gray').pack()
-        combo = Combobox(window)
-        combo['values'] = ('Choose..','1','2','3','Text')
+        Label(window_medicine, text="\nAmount",font=("Basic Retro", 16),bg='Light Gray').pack()
+        Entry(window_medicine, bd=3,textvariable=MEDICINE_AMOUNT).pack()
+        Label(window_medicine, text="\nPrice",font=("Basic Retro", 16),bg='Light Gray').pack()
+        Entry(window_medicine, bd=3,textvariable=MEDICINE_PRICE).pack()
+        Label(window_medicine, text="\nCompany",font=("Basic Retro", 16),bg='Light Gray').pack()
+        combo = Combobox(window_medicine,textvariable=MEDICINE_COMPANY)
+        combo['values'] = ('Choose..','ABC Company','XYZ Company')
         combo.current(0)
         combo.pack()
-        Label(window,text="\n", bg='Light Gray').pack()
-        Button(window,text='Add Company',command=ActionHandler.add_company_button_command,bd=3,fg='Black',bg='Gray',font=("Bold"),width=20,height=1).pack()
-        Label(window,text="\n", bg='Light Gray').pack()
-        Button(window,text='Show Medicine',command=ActionHandler.show_medicine_button_command,bd=3,fg='Black',bg='Gray',font=("Bold"),width=20,height=1).pack()
-        Label(window, text="\n", bg='Light Gray').pack()
-        Button(window,text='Save',command=ActionHandler.save_button_command,bd=3,fg='Black',bg='Gray',font=("Bold"),width=20,height=1).pack()
-        window.mainloop()
+        Label(window_medicine,text="\n", bg='Light Gray').pack()
+        Button(window_medicine,text='Show Medicine',command=ActionHandler.show_medicine_button_command,bd=3,fg='Black',bg='Gray',font=("Bold"),width=20,height=1).pack()
+        Label(window_medicine, text="\n", bg='Light Gray').pack()
+        Button(window_medicine,text='Save',command=ActionHandler.save_medicine_button_command,bd=3,fg='Black',bg='Gray',font=("Bold"),width=20,height=1).pack()
+        Label(window_medicine, textvariable=MANDATORY_MEDICINE_FIELD, bg='Light Gray',fg='Red').pack()
+        window_medicine.mainloop()
     @staticmethod
     def add_patient_window():
         window = Toplevel()
@@ -244,24 +274,14 @@ class View:
         Label(window, text="\nConsult Doctor", font=("Basic Retro", 35), bg='Light Gray').pack()
         View.set_window(window)
         window.mainloop()
-    @staticmethod
-    def add_company_window():
-        window = Toplevel()
-        Label(window, text="\nAdd Company", font=("Basic Retro", 35), bg='Light Gray').pack()
-        View.set_window(window)
-        window.mainloop()
+
     @staticmethod
     def show_medicine_window():
         window = Toplevel()
         Label(window, text="\nShow Medicine", font=("Basic Retro", 35), bg='Light Gray').pack()
         View.set_window(window)
         window.mainloop()
-    @staticmethod
-    def save_company_window():
-        window = Toplevel()
-        Label(window, text="\nSave Company Window", font=("Basic Retro", 35), bg='Light Gray').pack()
-        View.set_window(window)
-        window.mainloop()
 if __name__ == '__main__':
+    DataBaseHandler.create_all_tables()
     View.login_View(window)
     window.mainloop()
