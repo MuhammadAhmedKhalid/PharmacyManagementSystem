@@ -392,18 +392,6 @@ class View:
                bg='Gray', font=("Bold"), width=20, height=1).pack()
         Label(window_patient, textvariable=MANDATORY_PATIENT_FIELD, bg='Light Gray', fg='Red').pack()
         window_patient.mainloop()
-    @staticmethod
-    def buy_medicine_window():
-        window = Toplevel()
-        Label(window, text="\nBuy Medicine",font=("Basic Retro",35),bg='Light Gray').pack()
-        View.set_window(window)
-        window.mainloop()
-    @staticmethod
-    def consult_doctor_window():
-        window = Toplevel()
-        Label(window, text="\nConsult Doctor", font=("Basic Retro", 35), bg='Light Gray').pack()
-        View.set_window(window)
-        window.mainloop()
 
 if __name__ == '__main__':
     DataBaseHandler.create_all_tables()
