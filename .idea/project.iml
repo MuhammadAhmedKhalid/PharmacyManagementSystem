@@ -7,5 +7,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="Pharmacy-Management-System-python-master" />
+    <orderEntry type="module" module-name="practicelab" />
   </component>
 </module>
